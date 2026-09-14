@@ -24,7 +24,6 @@ export class InquiryPage {
   readonly phone: Locator;
   readonly consentCheckbox: Locator;
   readonly submitButton: Locator;
-  readonly honeypot: Locator;
   readonly fieldError: Locator;
 
   constructor(private readonly page: Page) {
@@ -36,7 +35,6 @@ export class InquiryPage {
     this.phone = form.locator('input[name="telephone"]');
     this.consentCheckbox = form.locator('input[name="termsAgreement"]');
     this.submitButton = form.locator('button[type="submit"]:visible');
-    this.honeypot = form.locator('#hp-field');
     this.fieldError = form.locator('.formkit-message');
   }
 
@@ -87,23 +85,6 @@ export class InquiryPage {
 
   waitForSubmittedForm(): Promise<SubmittedForm> {
     return this.page.waitForRequest('**/submit-form/').then((request) => InquiryPage.readForm(request));
-  }
-
-  async honeypotIsHiddenFromScreenReaders(): Promise<boolean> {
-    return this.honeypot.evaluate((field) => {
-      const style = getComputedStyle(field);
-      return field.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden';
-    });
-  }
-
-  async tabThroughForm(steps = 10): Promise<string[]> {
-    const focusedFieldNames: string[] = [];
-    await this.firstName.focus();
-    for (let i = 0; i < steps; i++) {
-      focusedFieldNames.push(await this.page.evaluate(() => document.activeElement?.getAttribute('name') ?? ''));
-      await this.page.keyboard.press('Tab');
-    }
-    return focusedFieldNames;
   }
 
   // FormKit only records values typed key by key; page.fill() would leave the form empty.

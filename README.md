@@ -24,7 +24,7 @@ npm run test:headed
 npm run report         # open the last HTML report
 ```
 
-Tags: `@smoke`, `@regression`, `@negative`, `@compliance`, `@a11y`, `@responsive`.
+Tags: `@smoke`, `@regression`, `@negative`, `@compliance`, `@responsive`.
 
 ## Test submissions never reach the CRM
 
@@ -61,9 +61,14 @@ Three folders, by blast radius:
 
 ```
 src/pages/InquiryPage.ts       Page Object for the form
-src/fixtures/test.ts           Playwright fixture that opens the form for each test
-src/fixtures/inquiry.data.ts   Test data
-tests/*.spec.ts                Specs grouped by concern
+src/fixtures/inquiryTest.ts    Test setup that opens the form before each test
+src/fixtures/inquiryData.ts    Test data (valid lead, invalid emails)
+tests/form-loads.spec.ts       The form renders correctly
+tests/form-submit.spec.ts      Submitting: valid lead, double click, failed submit
+tests/field-validation.spec.ts Required fields, email format, phone digits-only
+tests/consent.spec.ts          Consent must be accepted before submitting
+tests/xss.spec.ts              A script in the name field is blocked
+tests/mobile-layout.spec.ts    The form fits a phone screen
 playwright.config.ts           Config: chromium + webkit, retries, HTML report
 .github/workflows/             CI
 docs/                          Test plan and manual guide
