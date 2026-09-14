@@ -78,8 +78,8 @@ Two deviations from the assignment brief, both confirmed in the DOM:
 - **Full WCAG 2.1 AA audit.** Covered instead: keyboard path, label associations, error
   announcement, focus visibility, honeypot exposure — the failures that block a real user from
   submitting. An automated `axe` pass is listed as follow-up.
-- **Legal sufficiency of the consent wording.** A lawyer's call. We verify the mechanics of consent
-  capture, not the text.
+- **Legal sufficiency of the consent wording.** A lawyer's call. Testing covers the mechanics of
+  consent capture, not the text.
 
 ## 4. Findings from exploration
 
