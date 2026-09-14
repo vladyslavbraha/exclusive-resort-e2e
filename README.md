@@ -103,6 +103,10 @@ The form is a Nuxt/Vue SPA with FormKit fields, and two behaviours shaped the Pa
   form submits nothing.
 - **Wait for hydration.** `goto()` waits for load plus a bounded settle before interacting, because
   handlers are wired on hydration and `networkidle` never truly settles (Nuxt keeps prefetching).
+- The form renders a **separate mobile DOM variant** at narrow widths (its consent checkbox even
+  has a distinct `...AgreementMobile` id). Two parallel form implementations is a maintenance
+  smell worth raising; here it means the desktop-oriented specs are scoped away from the mobile
+  project, which runs only the responsive check.
 - Radios, checkboxes and the phone widget render their native input off-screen; the Page Object
   clicks the visible control (label/decorator) and reads state from the input.
 

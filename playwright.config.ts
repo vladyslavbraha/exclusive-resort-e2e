@@ -23,8 +23,12 @@ export default defineConfig({
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
   },
   projects: [
+    // Functional coverage runs on the two desktop engines the brief asks for.
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
-    { name: 'mobile-chromium', use: { ...devices['iPhone SE'] } },
+    // The mobile project exists only for the responsive layout check (TC-17). The form renders a
+    // separate mobile DOM variant, so the functional specs — written against the desktop form — are
+    // intentionally not run here; TC-17 sets its own 375px viewport regardless.
+    { name: 'mobile-chromium', use: { ...devices['iPhone SE'] }, grep: /@responsive/ },
   ],
 });
