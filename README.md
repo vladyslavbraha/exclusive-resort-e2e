@@ -4,8 +4,8 @@ End-to-end tests for the membership inquiry form at
 `https://public-site.stage.exclusiveresorts.com/inquire/`.
 
 Playwright (TypeScript) tests the UI; a Postman collection covers the API. Test design, risks and
-the full case list are in [`docs/test-plan.md`](docs/test-plan.md); the manual execution guide is
-[`docs/test-cases.md`](docs/test-cases.md).
+the full case list are in [`docs/test-plan.md`](docs/test-plan.md); the defects found during
+exploration are in [`docs/bug-report.md`](docs/bug-report.md).
 
 ## Setup
 
@@ -31,7 +31,7 @@ Tags: `@smoke`, `@regression`, `@negative`, `@compliance`, `@responsive`.
 A real submission creates a Pardot prospect, so the UI tests intercept `POST /submit-form/` with
 `page.route()` and assert the captured request instead. No prospect is created, and CI is safe to
 run on every push. The server-side write-path checks (consent bypass, honeypot, IDOR) can only be
-proven against the real backend, so they live in the Postman collection and the manual guide, not
+proven against the real backend, so they live in the Postman collection and the test plan, not
 in CI.
 
 ## Postman collection
@@ -71,7 +71,7 @@ tests/xss.spec.ts              A script in the name field is blocked
 tests/mobile-layout.spec.ts    The form fits a phone screen
 playwright.config.ts           Config: chromium + webkit, retries, HTML report
 .github/workflows/             CI
-docs/                          Test plan and manual guide
+docs/                          Test plan and bug report
 ```
 
 ## Notes for whoever extends this
@@ -89,7 +89,7 @@ The form is a Nuxt/Vue SPA with FormKit fields. Two things are easy to get wrong
 
 - No Pardot-side confirmation, no email/SMS delivery verification (no access).
 - Two browser engines; no `axe`/Lighthouse pass yet.
-- Postal-code formats and the name length/unicode matrix are covered in the manual guide — cheap
+- Postal-code formats and the name length/unicode matrix are covered manually in the test plan — cheap
   by hand, brittle to automate against a marketing page.
 - With another day: add `axe-core` to the run, add a Lighthouse budget, and turn the Postman
   write-path cases into a Newman job against a non-production endpoint.

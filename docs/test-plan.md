@@ -81,22 +81,14 @@ Two deviations from the assignment brief, both confirmed in the DOM:
 - **Legal sufficiency of the consent wording.** A lawyer's call. We verify the mechanics of consent
   capture, not the text.
 
-## 4. Open questions for the exploratory pass
+## 4. Findings from exploration
 
-1. **Does staging post to the production Pardot business unit?** The handler URL baked into the
-   bundle is `www2.exclusiveresorts.com/l/27772/…`, which is not a staging hostname. If staging
-   feeds the same Pardot org, test submissions land next to real prospects and the
-   responsible-testing rules in §7 apply in full rather than as a courtesy.
-2. **What does `/submit-form/` return for a valid submission?** A bare `GET` and a bare `POST` both
-   return **502**, not a 4xx. Either the route requires a form-encoded body and fails ungracefully
-   without one, or it is genuinely unhealthy on staging. Establish the shape from a real captured
-   submission before drawing a conclusion — if a malformed request really does yield 502, that is a
-   finding (validation errors should not surface as gateway failures).
-3. **Is the honeypot enforced server-side or client-side?** Determines whether TC-11 asserts a
-   blocked request or a rejected response.
-4. **Where does validation fire** — on blur, on submit, or both.
-5. **Does the success page carry the prospect's data** (`er_prospect_data` in client storage
-   suggests it might), which would make reflected XSS reachable on the confirmation screen.
+The exploratory pass is done; the defects it surfaced are written up in
+[`bug-report.md`](bug-report.md). The headline ones: a membership endpoint that trusts a
+client-supplied prospect id (potential IDOR), a honeypot exposed to screen readers, and an
+email-validation endpoint that leaks server exceptions and runs an unthrottled live check per
+keystroke. Two write-path items (server-side consent and honeypot enforcement) are left for a
+controlled Postman run because confirming them creates real prospects.
 
 ## 5. Risk areas driving prioritisation
 
@@ -264,44 +256,57 @@ clipped labels; the consent text is readable; radios, checkboxes, the country se
 are at least 44 × 44 px; the country dropdown opens inside the viewport; the on-screen keyboard
 does not hide Submit with no way to reach it.
 
-## 7. Coverage map
+## 7. How each case is verified
 
-| Required category | Cases |
-| --- | --- |
-| Smoke | TC-01, TC-02 |
-| Field validation | TC-03, TC-04, TC-05, TC-06, TC-07 |
-| Compliance | TC-08, TC-09 |
-| Security | TC-08, TC-10, TC-11, TC-12 |
-| UX / Accessibility | TC-12, TC-13, TC-14, TC-17 |
-| Edge cases | TC-07, TC-15, TC-16 |
+| Case | How | Where |
+| --- | --- | --- |
+| TC-01 Form loads | Playwright | `tests/form-loads.spec.ts` |
+| TC-02 Valid submission, full payload | Playwright | `tests/form-submit.spec.ts` |
+| TC-03 Empty submit blocked | Playwright | `tests/field-validation.spec.ts` |
+| TC-04 Email format rejected | Playwright | `tests/field-validation.spec.ts` |
+| TC-05 Phone rejects letters | Playwright | `tests/field-validation.spec.ts` |
+| TC-06 Postal code US + international | Manual | data matrix, cheap by hand |
+| TC-07 Name length / unicode | Manual | data matrix, cheap by hand |
+| TC-08 Consent blocked without agreement | Playwright | `tests/consent.spec.ts` |
+| TC-08b Consent enforced server-side | Postman | folder 2 → BUG-10 (needs confirmation) |
+| TC-09 `Text` chosen without SMS opt-in | Manual | needs a product decision |
+| TC-10 Script in Name blocked, no execution | Playwright | `tests/xss.spec.ts` |
+| TC-11 Honeypot enforced server-side | Postman | folder 2 → BUG-11 (needs confirmation) |
+| TC-12 Honeypot hidden from screen readers | Manual | → **BUG-02** |
+| TC-13 Keyboard-only completion | Manual | screen-reader / keyboard judgement |
+| TC-14 `/validate-email/` contract | Postman | folder 1 → **BUG-03/04/05** |
+| TC-15 Double-click submit → one request | Playwright | `tests/form-submit.spec.ts` |
+| TC-16 Failed submit keeps the data | Playwright | `tests/form-submit.spec.ts` |
+| TC-17 375px, no horizontal scroll | Playwright | `tests/mobile-layout.spec.ts` |
+| TC-18 Membership prospect-id authorisation | Postman | folder 3 → **BUG-01** |
 
-**Playwright, tagged:** `@smoke` TC-01, TC-02, TC-03; `@regression @negative` TC-04, TC-05, TC-10,
-TC-15, TC-16; `@compliance` TC-08; `@a11y` TC-12, TC-13; `@responsive` TC-17.
-**Postman:** the server side of TC-08 (missing consent, tampered hidden fields), TC-11 (honeypot),
-plus missing-field, malformed-email, SQL-injection, `GET` on the submit route, response contract and
-p95 over 10 calls.
-**Manual only:** TC-06, TC-07 (data matrices, cheap by hand and brittle to automate), TC-09 (needs a
-product decision), TC-14 (screen-reader judgement).
+**Automated (Playwright), by tag:** `@smoke` TC-01, TC-02; `@regression @negative` TC-03, TC-04,
+TC-05; `@regression` TC-10, TC-15, TC-16; `@compliance` TC-08; `@responsive` TC-17.
+**Postman:** the `/validate-email/` contract (safe), and the write-path checks (consent, honeypot,
+membership id) that must be run deliberately because they create prospects.
+**Manual:** the data matrices (TC-06, TC-07), the product-decision case (TC-09), and the
+accessibility judgement calls (TC-12, TC-13).
 
 ## 8. Test data and responsible-testing rules
 
-Staging relaxes nothing until open question §4.1 is answered: the Pardot handler baked into the
-bundle is a production hostname, so a staging submission may create a real prospect.
+The Pardot handler baked into the bundle is a production hostname, so a staging submission may
+create a real prospect. The rules below keep that safe.
 
-- Names are always `QA Candidate – Vladyslav Braha`, recognisable anywhere downstream.
+- Names are always `QA Candidate` / `Braha`, recognisable as a test anywhere downstream.
 - Emails use `qa.candidate+<case-id>@<own-domain>`, so each submission is traceable.
 - Phone numbers come from reserved ranges (`+1 303 555 01xx`).
 - Live submissions stay in single digits across the assignment; every automated run stubs
   `POST /submit-form/` with `page.route()`, so CI never creates a prospect.
 - Security payloads are limited to reflection checks in the browser and one SQL-injection string
   against the endpoint. No scanning, fuzzing or load generation.
-- Postman needs a browser-like `User-Agent`: CloudFront answers **403** to default client agents.
-  That is a documented environment quirk, not a test result — assertions must not depend on it.
+- The Postman/curl layer must send a browser-like `User-Agent`: CloudFront answers **403** to
+  default client agents (the collection already sets one). The Playwright tests need no such
+  override — real browsers send an accepted UA on their own.
 
 ## 9. Exit criteria and known gaps
 
-Ready to report when every P0 passes, no P1 defect is open without an owner, and each question in
-§4 has become an observed fact or an item raised with the product owner.
+Ready to report when every P0 passes, no P1 defect is open without an owner, and every defect in
+[`bug-report.md`](bug-report.md) has been raised with the product owner.
 
 Known gaps at this depth: no Pardot-side confirmation, no email or SMS delivery verification, no
 `axe`/Lighthouse pass, two browser engines only. With another day: data-drive TC-06 and TC-07, add
