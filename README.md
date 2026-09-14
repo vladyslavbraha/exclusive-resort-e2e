@@ -57,6 +57,12 @@ Three folders, by blast radius:
 3. **Membership IDOR** — disabled by default. Only ever set `ownProspectId` to an id you created
    yourself; it writes to a real prospect.
 
+## CI
+
+`.github/workflows/playwright.yml` runs on every push and pull request: it installs dependencies
+(`npm ci`), installs the Chromium and WebKit browsers, runs the full suite, and uploads the HTML
+report as a build artifact. Writes are stubbed, so no run ever creates a prospect.
+
 ## Layout
 
 ```
