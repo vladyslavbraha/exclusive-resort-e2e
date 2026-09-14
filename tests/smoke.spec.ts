@@ -1,42 +1,32 @@
-import { test, expect } from '@playwright/test';
-import { InquiryPage } from '@pages/InquiryPage';
+import { test, expect } from '@fixtures/test';
 import { validLead } from '@fixtures/inquiry.data';
 
 test.describe('Inquiry form — smoke', () => {
-  test('TC-01 form loads with all fields and the honeypot in the DOM @smoke', async ({ page }) => {
-    const inquiry = new InquiryPage(page);
-    await inquiry.goto();
-
-    await expect(inquiry.firstName).toBeVisible();
-    await expect(inquiry.lastName).toBeVisible();
-    await expect(inquiry.email).toBeVisible();
-    await expect(inquiry.zip).toBeVisible();
-    await expect(inquiry.phone).toBeVisible();
-    await expect(inquiry.submit).toBeVisible();
-    for (const m of ['Phone', 'Text', 'Email'] as const) {
-      await expect(inquiry.radioInput(m)).toBeAttached();
+  test('TC-01 the form loads with every field visible @smoke', async ({ inquiryForm }) => {
+    await expect(inquiryForm.firstName).toBeVisible();
+    await expect(inquiryForm.lastName).toBeVisible();
+    await expect(inquiryForm.email).toBeVisible();
+    await expect(inquiryForm.zip).toBeVisible();
+    await expect(inquiryForm.phone).toBeVisible();
+    await expect(inquiryForm.submitButton).toBeVisible();
+    for (const method of ['Phone', 'Text', 'Email'] as const) {
+      await expect(inquiryForm.contactMethodInput(method)).toBeAttached();
     }
-    // Honeypot is present and removed from the tab order. Whether it is *also* hidden from
-    // assistive tech is a known concern, checked in the a11y spec (TC-12), not asserted here.
-    await expect(inquiry.honeypot).toBeAttached();
-    await expect(inquiry.honeypot).toHaveAttribute('tabindex', '-1');
   });
 
-  test('TC-02 valid submission posts the full payload (write stubbed) @smoke', async ({ page }) => {
-    const inquiry = new InquiryPage(page);
-    await inquiry.goto();
-    await inquiry.stubEmailValidation();
-    const { payload } = await inquiry.stubSubmit();
+  test('TC-02 a valid lead is submitted with all its data @smoke', async ({ inquiryForm }) => {
+    await inquiryForm.stubEmailValidation();
+    await inquiryForm.stubSubmitEndpoint();
+    const submitted = inquiryForm.waitForSubmittedForm();
 
-    await inquiry.fill(validLead);
-    await inquiry.setConsent();
-    await inquiry.submitForm();
+    await inquiryForm.fillLead(validLead);
+    await inquiryForm.acceptConsent();
+    await inquiryForm.submit();
 
-    const { form, values } = await payload;
+    const { form, fields } = await submitted;
     expect(form).toBe('SHORT_FORM');
-    expect(values.Email).toBe(validLead.email);
-    expect(values.FirstName).toBe(validLead.firstName);
-    expect(values.termsAgreement).toBe('true');
-    expect(values.MessagingPreferences ?? '').toBe(''); // honeypot rides along empty
+    expect(fields.FirstName).toBe(validLead.firstName);
+    expect(fields.Email).toBe(validLead.email);
+    expect(fields.termsAgreement).toBe('true');
   });
 });

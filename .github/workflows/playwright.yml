@@ -26,8 +26,6 @@ jobs:
 
       - name: Run E2E tests
         run: npx playwright test
-        # Live API tests (RUN_LIVE_API) stay off in CI: they hit the real backend and the
-        # write-path cases would create Pardot prospects. They are run on demand instead.
 
       - name: Upload HTML report
         if: ${{ !cancelled() }}

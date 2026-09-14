@@ -2,7 +2,7 @@
   "info": {
     "name": "Exclusive Resorts \u2014 Inquiry Form API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "API checks for the inquiry form. Folder 1 (/validate-email/) is safe to run repeatedly. Folders 2 and 3 hit the write path and create or modify real Pardot prospects \u2014 run them deliberately, not in a loop. Switch environment (stage/prod) with the baseUrl variable."
+    "description": "API checks for the inquiry form on the staging environment the developers provided. Folder 1 (/validate-email/) is safe to run repeatedly. Folders 2 and 3 hit the write path and create or modify real prospects \u2014 run them deliberately, not in a loop."
   },
   "item": [
     {

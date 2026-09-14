@@ -1,43 +1,35 @@
-import { test, expect } from '@playwright/test';
-import { InquiryPage } from '@pages/InquiryPage';
+import { test, expect } from '@fixtures/test';
 import { validLead } from '@fixtures/inquiry.data';
 
 test.describe('Resilience', () => {
-  test('TC-15 double-clicking Submit produces exactly one request @regression', async ({ page }) => {
-    const inquiry = new InquiryPage(page);
-    await inquiry.goto();
-    await inquiry.stubEmailValidation();
-
-    let count = 0;
+  test('TC-15 clicking submit twice sends only one request @regression', async ({ inquiryForm, page }) => {
+    let requestCount = 0;
     await page.route('**/submit-form/', async (route) => {
-      count += 1;
-      await new Promise((r) => setTimeout(r, 800)); // hold the response to widen the race window
+      requestCount += 1;
+      await new Promise((resolve) => setTimeout(resolve, 800));
       await route.fulfill({ status: 200, contentType: 'application/json', body: '{"data":{"id":1}}' });
     });
+    await inquiryForm.stubEmailValidation();
 
-    await inquiry.fill(validLead);
-    await inquiry.setConsent();
-    await expect(inquiry.submit).toBeEnabled({ timeout: 15000 });
-    await inquiry.submit.dblclick();
-    await page.waitForTimeout(2000);
+    await inquiryForm.fillLead(validLead);
+    await inquiryForm.acceptConsent();
+    await expect(inquiryForm.submitButton).toBeEnabled();
+    await inquiryForm.submitButton.dblclick();
+    await page.waitForTimeout(2_000);
 
-    expect(count, 'a double click must not create two leads').toBe(1);
+    expect(requestCount).toBe(1);
   });
 
-  test('TC-16 a failed submit surfaces an error, not a false success @regression', async ({ page }) => {
-    const inquiry = new InquiryPage(page);
-    await inquiry.goto();
-    await inquiry.stubEmailValidation();
-    await page.route('**/submit-form/', (route) => route.fulfill({ status: 500, body: 'boom' }));
+  test('TC-16 a failed submission shows an error and keeps the entered data @regression', async ({ inquiryForm, page }) => {
+    await inquiryForm.stubEmailValidation();
+    await page.route('**/submit-form/', (route) => route.fulfill({ status: 500, body: 'error' }));
 
-    await inquiry.fill(validLead);
-    await inquiry.setConsent();
-    await inquiry.submitForm();
-    await page.waitForTimeout(1500);
+    await inquiryForm.fillLead(validLead);
+    await inquiryForm.acceptConsent();
+    await inquiryForm.submit();
+    await page.waitForTimeout(1_500);
 
-    // Must not land on the success state on a 500.
     expect(page.url()).not.toContain('submission-success');
-    // The data must still be there to retry (no silent wipe).
-    expect(await inquiry.firstName.inputValue()).toBe(validLead.firstName);
+    expect(await inquiryForm.firstName.inputValue()).toBe(validLead.firstName);
   });
 });

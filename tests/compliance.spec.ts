@@ -1,24 +1,17 @@
-import { test, expect } from '@playwright/test';
-import { InquiryPage } from '@pages/InquiryPage';
+import { test, expect } from '@fixtures/test';
 import { validLead } from '@fixtures/inquiry.data';
 
 test.describe('Compliance', () => {
-  test('TC-06 submit is blocked in the browser while the consent box is unchecked @compliance', async ({ page }) => {
-    const inquiry = new InquiryPage(page);
-    await inquiry.goto();
-    await inquiry.stubEmailValidation();
+  test('TC-06 the form cannot be submitted without consent @compliance', async ({ inquiryForm, page }) => {
+    await inquiryForm.stubEmailValidation();
+    await inquiryForm.fillLead(validLead);
 
-    // Fill a complete, valid lead but leave the privacy/consent checkbox untouched.
-    await inquiry.fill(validLead);
+    let submitted = false;
+    await page.route('**/submit-form/', (route) => { submitted = true; route.abort(); });
 
-    // No submission may leave the browser without consent — this is a legal requirement, not UX.
-    let posted = false;
-    await page.route('**/submit-form/', (route) => { posted = true; route.abort(); });
+    await inquiryForm.submitButton.click({ force: true }).catch(() => {});
 
-    await inquiry.submit.click({ force: true }).catch(() => {});
-    await page.waitForTimeout(1000);
-
-    expect(posted, 'a lead must not be sent while consent is unchecked').toBe(false);
-    await expect(inquiry.consent, 'the consent checkbox should remain unchecked').not.toBeChecked();
+    expect(submitted).toBe(false);
+    await expect(inquiryForm.consentCheckbox).not.toBeChecked();
   });
 });
