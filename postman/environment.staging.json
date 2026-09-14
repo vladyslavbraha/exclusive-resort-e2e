@@ -1,0 +1,20 @@
+{
+  "name": "Exclusive Resorts \u2014 Staging",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "https://public-site.stage.exclusiveresorts.com",
+      "enabled": true
+    },
+    {
+      "key": "testEmail",
+      "value": "qa.candidate+api@example.com",
+      "enabled": true
+    },
+    {
+      "key": "ownProspectId",
+      "value": "",
+      "enabled": true
+    }
+  ]
+}
